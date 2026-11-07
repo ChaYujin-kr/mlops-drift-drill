@@ -1,0 +1,10 @@
+# 환경
+.venv-pipeline/
+__pycache__/
+# 생성물: 다시 만들 수 있는 것
+data/
+logs/
+labels/
+labels2/
+column_list.pkl
+pipeline/drift_pipeline.yaml

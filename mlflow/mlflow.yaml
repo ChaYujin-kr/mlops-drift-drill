@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mlflow
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mlflow-db
+  namespace: mlflow
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlflow
+  namespace: mlflow
+spec:
+  replicas: 1                      # SQLite는 동시 쓰기에 약함 → 1개만
+  strategy:
+    type: Recreate                 # 교체 시 두 Pod가 같은 DB 파일을 동시에 열지 않도록
+  selector:
+    matchLabels: {app: mlflow}
+  template:
+    metadata:
+      labels: {app: mlflow}
+    spec:
+      containers:
+        - name: mlflow
+          image: local/mlflow-server:2.17.2
+          imagePullPolicy: IfNotPresent      # kind load로 올린 이미지 → 외부에서 pull 하지 않음
+          env:
+            - name: MLFLOW_S3_ENDPOINT_URL
+              value: http://minio-service.kubeflow.svc.cluster.local:9000
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom: {secretKeyRef: {name: minio-cred, key: accesskey}}
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom: {secretKeyRef: {name: minio-cred, key: secretkey}}
+          command: ["sh", "-c"]
+          args:
+            - |
+              python -c "
+              import boto3, os
+              s3 = boto3.client('s3', endpoint_url=os.environ['MLFLOW_S3_ENDPOINT_URL'])
+              if 'mlflow' not in [b['Name'] for b in s3.list_buckets()['Buckets']]:
+                  s3.create_bucket(Bucket='mlflow'); print('bucket created')
+              " &&
+              exec mlflow server --host 0.0.0.0 --port 5000 \
+                --backend-store-uri sqlite:////data/mlflow.db \
+                --artifacts-destination s3://mlflow \
+                --serve-artifacts
+          ports:
+            - containerPort: 5000
+          readinessProbe:
+            httpGet: {path: /health, port: 5000}
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          volumeMounts:
+            - {name: db, mountPath: /data}
+      volumes:
+        - name: db
+          persistentVolumeClaim: {claimName: mlflow-db}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mlflow
+  namespace: mlflow
+spec:
+  selector: {app: mlflow}
+  ports:
+    - port: 5000
+      targetPort: 5000

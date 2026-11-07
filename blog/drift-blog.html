@@ -1,0 +1,534 @@
+<title>드리프트 경보 실습기</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap">
+<style>
+/* Layout: 실험 노트 한 권. 68ch 본문 칼럼, 그림은 칼럼 폭 그대로, 표·코드는 자체 가로 스크롤 */
+:root {
+  --bg: #f6f7f5;
+  --paper: #fcfcfb;
+  --ink: #15181b;
+  --ink2: #4d5258;
+  --rule: #dcdfdc;
+  --accent: #1c5cab;
+  --code-bg: #eceee9;
+  --s1: #2a78d6;
+  --s2: #eb6834;
+  --s3: #1baf7a;
+  --grid: #e3e5e1;
+  --tip-bg: #15181b;
+  --tip-fg: #f6f7f5;
+  --f-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111314; --paper: #1a1a19; --ink: #eceeea; --ink2: #b7bcb6; --rule: #33373a;
+    --accent: #86b6ef; --code-bg: #23272a; --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+    --grid: #2c3033; --tip-bg: #eceeea; --tip-fg: #111314; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111314; --paper: #1a1a19; --ink: #eceeea; --ink2: #b7bcb6; --rule: #33373a;
+  --accent: #86b6ef; --code-bg: #23272a; --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+  --grid: #2c3033; --tip-bg: #eceeea; --tip-fg: #111314; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--f-body);
+  font-size: 16.5px; line-height: 1.8; word-break: keep-all; overflow-wrap: anywhere;
+}
+.wrap {
+  max-width: 46rem; margin: 0 auto;
+  padding-block: 3rem 5rem;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+header { display: grid; gap: .75rem; padding-bottom: 2rem; border-bottom: 1px solid var(--rule); }
+.kicker { font-family: var(--f-mono); font-size: .78rem; letter-spacing: .06em; color: var(--ink2); text-transform: uppercase; }
+h1 { font-size: clamp(1.9rem, 5vw, 2.6rem); line-height: 1.25; margin: 0; text-wrap: balance; font-weight: 700; }
+.lede { color: var(--ink2); margin: 0; font-size: 1.05rem; }
+.meta { font-family: var(--f-mono); font-size: .8rem; color: var(--ink2); display: flex; flex-wrap: wrap; gap: .25rem 1rem; }
+nav.toc { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .5rem; }
+nav.toc a { font-size: .85rem; color: var(--accent); text-decoration: none; border: 1px solid var(--rule); padding: .15rem .65rem; border-radius: 999px; }
+nav.toc a:hover, nav.toc a:focus-visible { border-color: var(--accent); outline: none; }
+section { padding-top: 3rem; }
+h2 { font-size: 1.6rem; margin: 0 0 1rem; display: flex; align-items: baseline; gap: .6rem; text-wrap: balance; }
+h2 .no { font-family: var(--f-mono); font-size: .9rem; color: var(--accent); font-weight: 500; }
+h3 { font-size: 1.15rem; margin: 2.2rem 0 .5rem; text-wrap: balance; }
+p { margin: .7rem 0; }
+strong { font-weight: 700; }
+a { color: var(--accent); }
+code { font-family: var(--f-mono); font-size: .86em; background: var(--code-bg); padding: .08em .35em; border-radius: 4px; }
+pre { background: var(--code-bg); padding: 1rem 1.1rem; border-radius: 6px; overflow-x: auto; font-size: .85rem; line-height: 1.6; margin: 1rem 0; }
+pre code { background: none; padding: 0; }
+ul, ol { padding-left: 1.3rem; margin: .6rem 0; }
+li { margin: .25rem 0; }
+.tbl { overflow-x: auto; margin: 1rem 0; }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; line-height: 1.55; }
+th, td { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 500; color: var(--ink2); font-size: .82rem; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--f-mono); font-size: .85rem; }
+.callout { border-left: 3px solid var(--accent); padding: .3rem 0 .3rem 1rem; margin: 1.2rem 0; color: var(--ink); }
+.callout p { margin: .3rem 0; }
+.concepts { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: .75rem 1.5rem; margin: 1rem 0; }
+.concepts dl { margin: 0; }
+.concepts dt { font-weight: 700; font-size: .95rem; }
+.concepts dd { margin: .15rem 0 0; color: var(--ink2); font-size: .92rem; line-height: 1.65; }
+figure { margin: 1.6rem 0; background: var(--paper); border: 1px solid var(--rule); border-radius: 8px; padding: 1rem 1rem .6rem; position: relative; min-width: 0; }
+figcaption { font-size: .85rem; color: var(--ink2); margin-top: .4rem; line-height: 1.6; }
+figcaption b { color: var(--ink); font-weight: 500; }
+.legend { display: flex; flex-wrap: wrap; gap: .3rem 1rem; font-size: .8rem; color: var(--ink2); margin-bottom: .4rem; }
+.legend span { display: inline-flex; align-items: center; gap: .4rem; }
+.legend i { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+.legend i.box { height: 10px; width: 10px; border-radius: 2px; }
+.legend i.dash { background: none !important; border-top: 2px dashed var(--ink2); height: 0; }
+.chart svg { width: 100%; height: auto; display: block; overflow: visible; }
+.multi { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 1rem; }
+.multi .sub { font-size: .8rem; color: var(--ink2); font-weight: 500; }
+details { font-size: .82rem; color: var(--ink2); margin-top: .3rem; }
+details summary { cursor: pointer; }
+details summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tip { position: absolute; pointer-events: none; background: var(--tip-bg); color: var(--tip-fg); font-size: .78rem; line-height: 1.45; padding: .35rem .55rem; border-radius: 5px; white-space: nowrap; font-family: var(--f-mono); z-index: 5; }
+.mermaid { background: var(--paper); border: 1px solid var(--rule); border-radius: 8px; padding: 1rem; overflow-x: auto; }
+.steps { counter-reset: s; list-style: none; padding: 0; }
+.steps > li { counter-increment: s; position: relative; padding-left: 2.2rem; margin: .9rem 0; }
+.steps > li::before { content: counter(s); position: absolute; left: 0; top: .15rem; font-family: var(--f-mono); font-size: .8rem; color: var(--accent); border: 1px solid var(--accent); width: 1.5rem; height: 1.5rem; border-radius: 50%; display: grid; place-items: center; line-height: 1; }
+.verdict { font-family: var(--f-mono); font-size: .78rem; padding: .05rem .45rem; border-radius: 4px; border: 1px solid var(--rule); color: var(--ink2); white-space: nowrap; }
+footer { margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid var(--rule); font-size: .85rem; color: var(--ink2); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="kicker">ML 시스템 설계 · 6–7장 실습</div>
+  <h1>드리프트 경보가 울렸다. 재학습부터 해야 할까?</h1>
+  <p class="lede">UCI Adult 소득 예측 모델에 신규 채널 고객을 서서히 흘려 넣고, BentoML 서빙 → Evidently 드리프트 감시 → 지연 라벨 평가까지 직접 돌려봤다. 결론은 예상과 달랐다. 재학습보다 판정 기준 하나 바꾸는 게 훨씬 컸다.</p>
+  <div class="meta"><span>2026-11-07 ~ 11-08</span><span>BentoML 1.1.10 · Evidently 0.5.0 · scikit-learn 1.7.2</span><span>WSL2 Ubuntu</span></div>
+  <nav class="toc" aria-label="목차">
+    <a href="#summary">요약</a><a href="#problem">문제</a><a href="#process">해결 과정</a><a href="#result">결과</a><a href="#retro">회고</a>
+  </nav>
+</header>
+
+<!-- ───────────────────────── 요약 ───────────────────────── -->
+<section id="summary">
+  <h2><span class="no">01</span>요약</h2>
+
+  <h3>무엇을 했나</h3>
+  <p>연소득 50K 초과 여부(<code>[0]</code>/<code>[1]</code>)를 예측하는 모델을 서빙하던 중, 4번째 윈도우부터 마케팅 신규 채널이 열려 <strong>20대 단시간 근로자 비중이 8윈도우에 걸쳐 0%에서 100%로</strong> 늘어나는 상황을 만들었다. 라벨은 바로 오지 않고 나중에 도착한다. 이 상황에서 경보를 언제 울리고, 경보가 울리면 무엇을 해야 하는지가 실습의 질문이었다.</p>
+
+  <pre class="mermaid">
+flowchart LR
+  S["스트림 생성기<br/>신규 채널 0→100%"] --> B["BentoML 서빙<br/>14열 → one-hot 102열"]
+  B --> L[("서빙 로그<br/>customer_id · 원본 14열<br/>확률 · 모델 버전 · 기준")]
+  L --> E["Evidently<br/>200건 윈도우 · PSI"]
+  E -->|경보| D{"무엇부터?"}
+  D --> T["① 판정 기준 조정"]
+  D --> K["② 소량 라벨링으로 확인"]
+  D --> R["③ 성능 저하 확인 시 재학습"]
+  Y[("지연 라벨<br/>customer_id")] --> Q["Q5 평가<br/>AUC · 순이익"]
+  L --> Q
+  </pre>
+
+  <h3>한눈에 보는 결과</h3>
+  <ul>
+    <li>정상 구간(윈도우 0–3) 오탐 0건, <strong>첫 경보는 윈도우 5</strong> (신규 채널 비중 25%)</li>
+    <li>드리프트 구간에서 예측 1 비율이 0%까지 떨어졌지만, 라벨을 보니 <strong>실제 50K 초과도 1%</strong>였다. 정확도 0.99. 모델은 망가지지 않았다.</li>
+    <li>지연 라벨로 재학습한 모델은 AUC 0.950 → 0.952로 거의 같았다. 반면 <strong>판정 기준을 50%에서 10%로 낮추자 순이익이 764만 원에서 1,216만 원</strong>이 됐다.</li>
+  </ul>
+
+  <h3>개념 정리</h3>
+  <div class="concepts">
+    <dl><dt>윈도우</dt><dd>한 번에 묶어서 보는 데이터 구간. 이번엔 요청 200건. 실무에선 1시간, 하루처럼 시간으로 자르는 경우가 많다. 작을수록 우연한 흔들림이 커진다.</dd></dl>
+    <dl><dt>PSI</dt><dd>두 분포가 얼마나 다른지. 구간별로 (지금 비율 − 평소 비율) × ln(지금/평소)를 더한다. 0.1 미만 안정, 0.1–0.25 주의, 0.25 이상 큰 변화.</dd></dl>
+    <dl><dt>Drift share</dt><dd>드리프트로 판정된 열의 비율. 이번 규칙은 열 단위 PSI &gt; 0.1, 그런 열이 50% 이상이면 데이터셋 경보.</dd></dl>
+    <dl><dt>공변량 이동</dt><dd>입력 분포 P(x)는 바뀌고 x → y 관계는 그대로. 신규 채널, 신규 지역, 계절. 모델이 그 영역을 학습 때 충분히 봤다면 계속 잘 맞힌다.</dd></dl>
+    <dl><dt>개념 드리프트</dt><dd>같은 입력인데 정답이 달라진다. 물가·최저임금, 사기 수법 변화, 정의 변경. 라벨 없이는 잘 안 보이고, 모델이 진짜로 낡는다.</dd></dl>
+    <dl><dt>라벨 이동</dt><dd>정답 비율 P(y) 자체가 바뀐다. 독감 유행기에 같은 증상이어도 독감 환자 비율이 오르는 경우.</dd></dl>
+    <dl><dt>지연 라벨</dt><dd>정답이 예측보다 한참 뒤에 도착한다. 소득은 세금 신고 후, 카드 사기는 30–90일 뒤 이의 제기로 확인된다.</dd></dl>
+    <dl><dt>AUC vs 판정 기준</dt><dd>AUC는 줄 세우기 능력이라 판정 기준과 무관하다. 순이익은 기준에 따라 크게 달라진다.</dd></dl>
+    <dl><dt>비용 기반 기준 p*</dt><dd>p* = C<sub>FP</sub> / (C<sub>FP</sub> + C<sub>FN</sub>). 안내 2,000원, 놓친 가입 150,000원이면 약 1.3%. 확률이 정확하다는 전제가 붙는다.</dd></dl>
+    <dl><dt>가중치 재학습</dt><dd>도메인 분류기로 "요즘 고객과 닮은" 옛 샘플에 큰 가중치를 주고 <code>sample_weight</code>로 재학습. 새 라벨이 필요 없다.</dd></dl>
+    <dl><dt>섀도우 배포 vs A/B</dt><dd>섀도우는 같은 요청을 받아 예측만 남기고 결과는 쓰지 않는다. A/B는 실제로 결정을 적용해 비즈니스 효과를 잰다.</dd></dl>
+    <dl><dt>피처 중요도</dt><dd>트리 기본 중요도(빠르지만 값이 다양한 숫자 열을 과대평가), permutation, SHAP, 열 제거 후 재학습, 상관·상호정보량.</dd></dl>
+  </div>
+</section>
+
+<!-- ───────────────────────── 문제 ───────────────────────── -->
+<section id="problem">
+  <h2><span class="no">02</span>문제</h2>
+  <p><strong>시나리오: 신규 채널 유입으로 고객층이 바뀌었다.</strong> 데이터는 UCI Adult(48,842행, 원본 14개 피처: 범주형 8 + 수치형 6). 5,000건을 학습 겸 레퍼런스로 쓰고, 나머지에서 <code>age &lt; 30</code>이면서 <code>hours-per-week &lt; 35</code>인 고객을 신규 채널 고객으로 뽑아 윈도우마다 비중을 늘렸다.</p>
+  <pre><code>p = min(1.0, max(0.0, (t - 3) / 8))   # 윈도우 0~3: 정상, 이후 8윈도우에 걸쳐 0 → 1</code></pre>
+
+  <div class="tbl"><table>
+    <thead><tr><th>#</th><th>과제</th><th>통과 기준</th></tr></thead>
+    <tbody>
+      <tr><td>Q1</td><td>모델 학습, one-hot 열 목록 저장, BentoML에서 <code>reindex(fill_value=0)</code></td><td>원본 14열 단건 요청 → 200, [0]/[1]</td></tr>
+      <tr><td>Q2</td><td>원본 입력 14열 + 예측값 로그</td><td>200건 윈도우 단위로 읽기</td></tr>
+      <tr><td>Q3</td><td>Evidently 윈도우별 판정 (PSI 0.1, drift share 50%)</td><td>윈도우 0–3 오탐 0건, 첫 경보 윈도우 기록</td></tr>
+      <tr><td>Q4</td><td>경보 시 KFP 재학습 트리거</td><td>신규 모델 등록 → 재배포 <em>(이번엔 범위 밖)</em></td></tr>
+      <tr><td>Q5</td><td>지연 라벨로 구모델 vs 신모델 비교</td><td>재배포 효과를 숫자로 증명</td></tr>
+    </tbody>
+  </table></div>
+
+  <p>함께 던진 질문은 세 개였다.</p>
+  <ol>
+    <li>왜 one-hot된 102열이 아니라 원본 14열을 모니터링할까?</li>
+    <li>필터는 두 열뿐인데 어떤 열이 같이 드리프트로 잡힐까? 50%를 못 넘으면 규칙을 어떻게 바꿀까?</li>
+    <li>경보 시점엔 라벨이 없다. 재학습은 언제, 무엇으로 시작해야 할까?</li>
+  </ol>
+  <p>제한 시간은 20분. Q4(KFP·MinIO·KServe)는 시간 안에 불가능해서 로컬 레벨에서 Q1–Q3, 이후 Q5까지 진행했다.</p>
+</section>
+
+<!-- ───────────────────────── 해결 과정 ───────────────────────── -->
+<section id="process">
+  <h2><span class="no">03</span>해결 과정</h2>
+  <p>막힐 때마다 <strong>가설을 먼저 적고</strong> 확인하는 방식으로 진행했다. 각 단계 옆의 표시는 내 첫 가설의 판정이다.</p>
+
+  <h3>데이터 다운로드가 멈췄다 <span class="verdict">가설 O</span></h3>
+  <p><code>fetch_openml("adult")</code>이 60초 동안 응답이 없었다. 호스트별로 응답을 비교해 보니 범위가 바로 좁혀졌다.</p>
+<pre><code>api.openml.org → 000, 8.0s 타임아웃
+pypi.org       → 200, 0.04s</code></pre>
+  <p>가설은 "openml 서버 문제, UCI에서 직접 받기". UCI 원본 zip은 2.2초 만에 받았다. 그런데 <code>unzip</code>이 없어서 파이썬 <code>zipfile</code>로 풀었다. UCI 원본은 헤더가 없고, 값 앞에 공백이 있고, 결측이 <code>?</code>이고, test 파일 첫 줄은 주석에 라벨 끝에는 <code>.</code>이 붙어 있어서 로더에서 모두 처리했다.</p>
+
+  <h3>Q1. 한 건만 들어오면 열이 14개뿐이다 <span class="verdict">가설 없음 X</span></h3>
+  <p>학습 때는 5,000건을 한꺼번에 one-hot 해서 102열이 나왔다. 요청은 한 건씩 들어오니 같은 방식으로 one-hot 하면 그 사람 값에 해당하는 14열만 생긴다. 자동완성이 제안한 코드는 그럴듯했지만 두 군데서 터졌다.</p>
+<pre><code>one_hot(row)                 → NameError: 정의된 적 없는 함수
+get_dummies(...)[COLUMN_LIST] → KeyError: 없는 열 88개
+get_dummies(...).reindex(columns=COLUMN_LIST, fill_value=0) → (1, 102)</code></pre>
+  <p><code>reindex</code>의 <code>columns</code>는 결과가 가질 열 목록과 순서다. 목록에 없는 열은 버리고, 없던 열은 만든다. <code>fill_value=0</code>은 새로 만든 열을 0으로 채운다. 기본값 NaN이 아니라 0인 이유는 one-hot에서 "해당 없음"이 0이기 때문이다. 이 자리에 <code>reshape(1, -1)</code>도 제안됐는데, 1차원 배열을 1행 2차원으로 바꾸는 코드라 1행 DataFrame에는 필요 없다.</p>
+
+  <h3>Q2. NaN은 JSON이 될 수 없다 <span class="verdict">가설 △</span></h3>
+  <p>스트림을 보내자마자 <code>InvalidJSONError: Out of range float values are not JSON compliant</code>가 났다. 내 가설은 "<code>?</code> 특수문자가 인코딩이 안 된다, -999로 바꾸자"였다. 방향은 맞았지만 원인은 조금 달랐다. <code>na_values="?"</code> 때문에 <code>?</code>는 읽는 순간 NaN이라는 실수 값이 되고, JSON 표준에는 NaN이 없다. JSON에는 <code>null</code>이 있다. -999 같은 값은 모델과 PSI가 진짜 숫자로 받아들여 "-999살 고객"이 생기므로 쓰면 안 된다.</p>
+  <pre><code>json=row.astype(object).where(row.notna(), None).to_dict()   # NaN → null</code></pre>
+
+  <h3>Q3. Evidently로 윈도우별 판정</h3>
+  <p>설치된 Evidently는 0.5.0이라 예전 API를 그대로 썼다. 새 API(<code>from evidently import Report</code>)는 경로와 인자 순서가 다르니 버전부터 확인해야 한다.</p>
+<pre><code>from evidently.report import Report
+from evidently.metric_preset import DataDriftPreset
+
+r = Report(metrics=[DataDriftPreset(stattest="psi", stattest_threshold=0.1, drift_share=0.5)])
+r.run(reference_data=ref, current_data=cur)   # 원본 14열만</code></pre>
+  <p>결과는 정상 구간 오탐 0건, 첫 경보 윈도우 5였다. 그런데 두 가지가 눈에 띄었다. <code>native-country</code>는 정상 구간에서도 매번 드리프트로 잡혔다. 그리고 필터는 두 열뿐이었는데 최대 12개 열이 같이 잡혔다.</p>
+
+  <figure>
+    <div class="legend">
+      <span><i style="background:var(--s1)"></i>14열 기준 drift share</span>
+      <span><i style="background:var(--s2)"></i>13열 기준 (native-country 제외)</span>
+      <span><i style="background:var(--s3)"></i>신규 채널 비중 p</span>
+      <span><i class="dash"></i>경보 기준 50%</span>
+    </div>
+    <div class="chart" id="c-drift"></div>
+    <figcaption><b>그림 1.</b> 윈도우별 drift share. 14열 기준은 윈도우 5에서 경보, <code>native-country</code>를 빼면 윈도우 7로 늦어진다. 이 열이 매번 잡음으로 드리프트 개수를 하나씩 채워주고 있었다.</figcaption>
+    <details><summary>표로 보기</summary><div class="tbl" id="t-drift"></div></details>
+  </figure>
+
+  <p><strong>왜 다른 열도 같이 잡혔나.</strong> Evidently는 필터를 모른다. 매 윈도우 14개 열 전부를 레퍼런스와 비교할 뿐이다. 20대 단시간 근로자는 결혼 여부, 가족 관계, 학력, 직업도 평소 고객과 다르다. 서로 얽힌 열이 같이 움직인 것이다.</p>
+
+  <figure>
+    <div class="legend">
+      <span><i class="box" style="background:var(--s1)"></i>평소 고객 (레퍼런스)</span>
+      <span><i class="box" style="background:var(--s2)"></i>20대 단시간 근로자</span>
+    </div>
+    <div class="chart" id="c-marital"></div>
+    <figcaption><b>그림 2.</b> <code>marital-status</code> 비율. 나이와 근무시간으로만 골랐는데 미혼 비율이 34%에서 90%로 뛰었다.</figcaption>
+  </figure>
+
+  <p><strong>왜 102열이 아니라 14열을 보나.</strong> <code>workclass</code> 하나가 one-hot 하면 8개 열로 쪼개진다. 102열로 세면 대부분이 거의 0인 드문 열이고, 200건 윈도우에서는 드문 값 몇 건에도 PSI가 크게 튄다. <code>native-country</code>(41개 국가)가 정확히 그 모습이었다. 경보가 과하게 울리고, "workclass_Never-worked가 바뀌었다" 같은 경보는 해석도 어렵다.</p>
+
+  <h3>예측 1 비율 0%, 모델이 망가졌나 <span class="verdict">가설 X</span></h3>
+  <p>드리프트 구간 끝에서 모델은 200명 전원을 "50K 이하"로 예측했다. 0%는 상식적으로 이상해 보였고, 내 가설은 "모델이 망가졌다, 라벨이 오면 바로 재학습"이었다. 라벨을 확인해 보니 틀렸다.</p>
+
+  <figure>
+    <div class="legend">
+      <span><i style="background:var(--s1)"></i>모델 예측 1 비율</span>
+      <span><i style="background:var(--s2)"></i>실제 50K 초과 비율 (지연 라벨)</span>
+    </div>
+    <div class="chart" id="c-pred"></div>
+    <figcaption><b>그림 3.</b> 두 선이 같이 내려간다. 신규 채널 고객은 실제로 거의 다 50K 이하였다. 윈도우 14의 정확도는 0.99로 평소(0.84)보다 높다.</figcaption>
+    <details><summary>표로 보기</summary><div class="tbl" id="t-pred"></div></details>
+  </figure>
+
+  <div class="callout"><p><strong>데이터 드리프트가 곧 성능 저하는 아니다.</strong> 입력은 크게 바뀌었지만(age PSI 5.49) "이런 사람은 소득이 이렇다"는 관계는 그대로였다. 공변량 이동이다. 이상하다는 것과 틀렸다는 것은 다르다. 판단 전에 소량이라도 라벨을 확인해야 한다.</p></div>
+
+  <h3>중요 피처 기준 규칙</h3>
+  <p>랜덤포레스트 중요도를 원본 열 단위로 합산하니 상위가 <code>age</code> 0.14, <code>fnlwgt</code> 0.13, <code>marital-status</code> 0.10이었다. "상위 3개 중 2개 이상 드리프트면 경보" 규칙은 정상 구간 오탐 0건, 윈도우 5 경보였다. 시점은 14열 규칙과 같지만 잡음이 아니라 실제로 중요한 열 때문에 울렸다.</p>
+  <p>다만 <code>fnlwgt</code>는 인구조사의 표본 가중치라 소득과 거의 관계가 없다. 트리 기본 중요도가 값이 다양한 숫자 열을 과대평가해서 생긴 결과다. 자동으로 뽑은 중요도도 사람이 검토해야 한다. 이 열은 원래 피처가 아니라 <code>sample_weight</code>로 써야 하는 값이다.</p>
+
+  <h3>판정 기준만 바꿔보기</h3>
+  <p>상황을 하나 가정했다. 이 모델로 50K 초과 고객에게 프리미엄 카드 안내를 보낸다. 안내 1건에 2,000원, 50K 초과 고객이 가입하면 150,000원이 남는다. 라벨은 3개월 뒤에 오고, 200건 수동 라벨링은 50만 원에 3일이다. 선택지는 즉시 재학습, 3개월 대기, 소량 라벨링, 판정 기준 조정이었고 나는 기준 조정 → 소량 라벨링 순서를 골랐다.</p>
+  <p>서빙 로그에 확률이 없었지만 원본 14열을 남겨둔 덕에 같은 모델로 확률을 다시 계산할 수 있었다.</p>
+
+  <figure>
+    <div class="multi">
+      <div><div class="sub">정상 구간 (윈도우 0–3, 800건)</div><div class="chart" id="c-th-normal"></div></div>
+      <div><div class="sub">드리프트 구간 (윈도우 8–14, 1,400건)</div><div class="chart" id="c-th-drift"></div></div>
+    </div>
+    <figcaption><b>그림 4.</b> 판정 기준별 순이익(만 원). 모델은 그대로다. 드리프트 구간에서 50% → 10%만으로 293만 → 524만. 이론상 최적 p*(1.3%)보다 10%가 조금 나은 건 랜덤포레스트 확률이 보정되지 않았기 때문이다. 두 그림은 축 범위가 다르다.</figcaption>
+  </figure>
+
+  <h3>새 라벨 없이 가중치 재학습 <span class="verdict">효과 없음</span></h3>
+  <p>최근 서빙 입력(라벨 없음)과 레퍼런스를 구분하는 도메인 분류기를 학습하고, 레퍼런스 샘플마다 가중치를 줬다.</p>
+<pre><code>w = p(최근|x) / p(옛날|x) × (n_ref / n_new)
+model.fit(X_ref, y_ref, sample_weight=w)
+
+# 가중치 20   ← 17세, 주 12시간, 미혼    (요즘 고객과 닮음)
+# 가중치 0.05 ← 61세, 주 40시간, 기혼    (요즘 거의 안 들어옴)</code></pre>
+  <p>AUC는 0.947 → 0.941로 오히려 조금 내려갔다. 랜덤포레스트는 이미 그 영역을 잘 배워뒀고, 가중치를 세게 주면서 유효 샘플 수가 5,000에서 536으로 줄어 불안정해졌다. 이 기법은 단순한 모델이거나 학습 데이터 자체가 편향된 경우(승인된 사람의 상환 기록만 있는 대출 모델 등)에 더 의미가 있다. 실무에서는 재학습보다 "옛 라벨로 새 분포 성능 추정"에 더 자주 쓴다.</p>
+
+  <h3>로그 다시 설계하기</h3>
+  <p>모델이 교체되면 옛 모델로 확률을 다시 계산할 수 없다. 그래서 서빙 로그를 다시 설계했다.</p>
+<pre><code>record = {
+    "customer_id": customer_id,       # 실무 고객 ID로 통일, 피처에서 분리
+    "row": row,                       # 원본 14열 (묶어서 저장 → 키 충돌 없음)
+    "prediction": pred,
+    "probability": proba,
+    "model_version": MODEL_TAG,
+    "threshold": THRESHOLD,
+    "request_id": uuid.uuid4().hex,
+    "request_time": time.time(),
+}</code></pre>
+  <p>원본을 <code>{**row, "proba": ...}</code>처럼 펼쳐 넣으면, 입력에 같은 이름의 키가 있을 때 나중 값이 앞 값을 에러 없이 덮어쓴다. 처음엔 요청 ID가 필요 없다고 생각했는데, 첫 스트림의 라벨 연결이 "로그 순서 = 라벨 순서"라는 가정(워커 1개, 순차 요청)에 기대고 있었다. 워커가 여러 개면 순서가 섞이고, 서버에서 만든 ID는 라벨을 보내는 쪽이 모른다. 그래서 실무에서 쓰는 고객 ID로 통일했다. BentoML에서 확률을 받으려면 저장할 때 <code>signatures</code>에 <code>predict_proba</code>를 등록해야 한다.</p>
+
+  <h3>Q5. 고객 ID로 지연 라벨을 연결해 비교</h3>
+  <p>드리프트 구간 1,200건을 고객 ID와 함께 새로 흘렸다. 신모델은 레퍼런스에 첫 스트림의 지연 라벨 3,000건을 더해 재학습했다. 신모델 학습에 쓴 고객이 평가에 섞이면 답을 미리 본 셈이라 뺐다.</p>
+  <pre><code>로그 1,200건 → 고객 ID 조인 1,133건(중복 고객 합침) → 학습 고객 284명 제외 → 평가 849건</code></pre>
+</section>
+
+<!-- ───────────────────────── 결과 ───────────────────────── -->
+<section id="result">
+  <h2><span class="no">04</span>결과</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>과제</th><th>결과</th></tr></thead>
+    <tbody>
+      <tr><td>Q1 서빙</td><td>14열 요청 → 200, <code>[0]</code></td></tr>
+      <tr><td>Q2 로그</td><td>원본 14열 + 예측, 200건 × 15윈도우. 이후 고객 ID·확률·버전·기준까지 확장</td></tr>
+      <tr><td>Q3 드리프트</td><td>정상 구간 오탐 0건, 첫 경보 윈도우 5 (p = 0.25). <code>native-country</code> 제외 시 윈도우 7</td></tr>
+      <tr><td>Q4 KFP</td><td>범위 밖 (다음 과제)</td></tr>
+      <tr><td>Q5 비교</td><td>재학습 효과는 미미, 판정 기준 조정 효과는 큼 (아래)</td></tr>
+    </tbody>
+  </table></div>
+
+  <figure>
+    <div class="legend">
+      <span><i class="box" style="background:var(--s1)"></i>구모델 · AUC 0.950</span>
+      <span><i class="box" style="background:var(--s2)"></i>신모델 (지연 라벨로 재학습) · AUC 0.952</span>
+    </div>
+    <div class="chart" id="c-q5"></div>
+    <figcaption><b>그림 5.</b> 드리프트 구간 849건, 실제 50K 초과 88명. 같은 기준에서 두 모델 차이는 많아야 14만 원. 같은 구모델에서 기준만 50% → 10%로 바꾸면 약 450만 원.</figcaption>
+    <details><summary>표로 보기</summary><div class="tbl" id="t-q5"></div></details>
+  </figure>
+
+  <div class="tbl"><table>
+    <thead><tr><th>지표</th><th class="num">값</th></tr></thead>
+    <tbody>
+      <tr><td>첫 경보 윈도우 (14열 / 13열 / 중요 피처 규칙)</td><td class="num">5 / 7 / 5</td></tr>
+      <tr><td>Q5 드리프트 구간 AUC (구모델 / 신모델)</td><td class="num">0.950 / 0.952</td></tr>
+      <tr><td>판정 기준 50% → 10% 순이익 (Q5 평가셋)</td><td class="num">764만 → 1,216만</td></tr>
+      <tr><td>내 가설 적중률 (O 1, △ 1, X 2)</td><td class="num">38%</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ───────────────────────── 회고 ───────────────────────── -->
+<section id="retro">
+  <h2><span class="no">05</span>회고</h2>
+
+  <h3>인사이트</h3>
+  <ol class="steps">
+    <li><strong>드리프트 경보는 "입력이 바뀌었다"는 신호이지 "모델이 틀린다"는 신호가 아니다.</strong> age PSI가 5.49였던 윈도우에서 정확도는 0.99였다. 공변량 이동인지 개념 드리프트인지 구분하는 단계가 경보와 재학습 사이에 있어야 한다.</li>
+    <li><strong>가장 싼 개선이 가장 컸다.</strong> 재학습, 새 라벨 없이 비용표 하나로 판정 기준을 바꾼 효과가 재학습의 수십 배였다. 기본 기준 50%는 비용 구조를 전혀 반영하지 않은 숫자다.</li>
+    <li><strong>감시할 열을 고르는 것도 설계다.</strong> 시끄러운 열 하나가 경보 시점을 두 윈도우 당겼다. 다만 항상 그 방향은 아니다. 그 열이 우연히 조용했던 윈도우에선 분모만 줄어 오히려 빨라지고, 해외 채널처럼 그 열이 진짜 첫 신호일 수도 있다.</li>
+    <li><strong>원본 입력을 남긴 로그가 실험을 살렸다.</strong> 확률을 저장하지 않았는데도 원본 14열 덕에 다시 계산할 수 있었다. 모델이 교체된 뒤라면 불가능했을 일이다.</li>
+    <li><strong>자동으로 나온 결과는 사람이 검증해야 한다.</strong> 자동완성 코드는 두 군데서 터졌고, 자동 중요도는 의미 없는 <code>fnlwgt</code>를 2위로 올렸다.</li>
+  </ol>
+
+  <h3>같이 논의한 것</h3>
+  <p><strong>최저임금이 오르면?</strong> 같은 사람의 명목 소득이 올라 50K 초과가 늘어난다. 개념 드리프트다. 기준을 60K로 올리면 "상위 고소득자"라는 의미는 어느 정도 지킬 수 있지만, 인상은 저소득층에 크게 작용하고 고소득층엔 거의 영향이 없어서 기준만 바꿔서는 부족하다. 카드 자격처럼 명목 금액이 상품이나 법으로 정해져 있으면 기준 자체를 못 바꾼다. 기준 변경은 기술이 아니라 비즈니스 결정이다.</p>
+  <p><strong>실패 비용은 어떻게 매기나.</strong> 기본은 오분류 비용표다. 도메인마다 모양이 다르다.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>도메인</th><th>잘못 잡음 (FP)</th><th>놓침 (FN)</th><th>실무 방법</th></tr></thead>
+    <tbody>
+      <tr><td>마케팅</td><td>발송비, 피로도</td><td>놓친 매출</td><td>홀드아웃 그룹: 일부러 안 보내서 놓친 것을 잰다</td></tr>
+      <tr><td>의료</td><td>불필요한 검사, 불안</td><td>진단 지연</td><td>Decision Curve Analysis: 기준 확률 자체가 환자가 위해를 저울질하는 방식을 반영한다</td></tr>
+      <tr><td>보이스피싱</td><td>정상 거래 차단 → 민원·소송</td><td>피해액</td><td>0/1 대신 경고 → 추가 인증 → 지연이체 → 차단의 단계별 조치, 거래별 비용</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>현실의 벽.</strong> 200만 원, 450만 원 차이도 성과로 인정받기까지는 설득이 필요하고, 중소기업은 이 정도 데이터가 쌓이지도 않는 경우가 많다. 컬럼 설계, 수집, 파이프라인, 유지보수 비용이 버는 돈보다 클 수 있다. 그래서 거창한 파이프라인보다 비용표 기반 기준 조정 같은 가벼운 방법이 먼저 가치를 낸다고 생각한다.</p>
+
+  <h3>실무에서 중요하게 다뤄야 할 것</h3>
+  <ul>
+    <li><strong>경보 이후의 순서를 정해두기:</strong> 소량 라벨로 성능 확인 → 판정 기준 조정 → 개념 드리프트가 확인되면 재학습. 재학습은 섀도우나 챔피언/챌린저로 검증한 뒤 교체.</li>
+    <li><strong>열마다 역할 나누기:</strong> 파이프라인 고장 감시(결측률·단위 변화, 하나라도 바뀌면 경보), 성능 감시(중요 피처 기준), 참고용(대시보드만).</li>
+    <li><strong>로그 스키마:</strong> 비즈니스 ID, 원본 입력(묶어서), 확률, 모델 버전, 판정 기준, 시각. 지연 라벨과 조인할 키가 없으면 평가 자체가 불가능하다.</li>
+    <li><strong>라벨 없이 볼 수 있는 것:</strong> 예측 분포 변화, 보정된 확률 기반 성능 추정(CBPE, 단 개념 드리프트는 못 잡음), 소량 수동 라벨링.</li>
+    <li><strong>평가 데이터 누수 막기:</strong> 재학습에 쓴 고객이 평가에 섞이지 않게.</li>
+    <li><strong>환경 재현성:</strong> openml 장애, 빠진 <code>unzip</code>, Evidently API 변경, Yatai 아카이브. 도구와 데이터 출처는 언제든 바뀐다.</li>
+  </ul>
+
+  <h3>다음 과제</h3>
+  <p>Q4. KFP로 재학습 파이프라인을 만들되, 이번 결론을 반영해 <strong>"재학습할지 말지 판단하는 단계"</strong>(소량 라벨 성능 확인, 기준 재계산)를 파이프라인 안에 넣어볼 생각이다.</p>
+
+  <h3>참고</h3>
+  <ul>
+    <li>Elkan (2001), <em>The Foundations of Cost-Sensitive Learning</em></li>
+    <li>Vickers &amp; Elkin (2006), <em>Decision Curve Analysis</em></li>
+    <li>Bahnsen et al. (2015), <em>Example-Dependent Cost-Sensitive Decision Trees</em></li>
+    <li>Žliobaitė (2010), <em>Change with Delayed Labeling: When Is It Detectable?</em></li>
+    <li>Rabanser et al. (2019), <em>Failing Loudly: An Empirical Study of Methods for Detecting Dataset Shift</em></li>
+    <li>Finlayson et al. (2021), <em>The Clinician and Dataset Shift in Artificial Intelligence</em>, NEJM</li>
+  </ul>
+</section>
+
+<footer>실습 코드: <code>~/chapter-7-drill/</code> (common.py, train.py, service.py, stream.py, drift.py, drift_exp.py, exp_threshold.py, q5.py)</footer>
+</div>
+
+<div class="tip" id="tip" hidden></div>
+
+<script>
+(function () {
+  const NS = "http://www.w3.org/2000/svg";
+  const tip = document.getElementById("tip");
+  const el = (tag, attrs, parent) => {
+    const n = document.createElementNS(NS, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(n);
+    return n;
+  };
+  const txt = (parent, x, y, s, extra) => {
+    const t = el("text", Object.assign({ x, y, style: "fill:var(--ink2);font-size:11px;font-family:var(--f-mono)" }, extra || {}), parent);
+    t.textContent = s; return t;
+  };
+
+  function attachTips(svg, fig) {
+    svg.addEventListener("pointermove", e => {
+      const m = e.target.closest("[data-tip]");
+      if (!m) { tip.hidden = true; return; }
+      tip.textContent = m.getAttribute("data-tip");
+      tip.hidden = false;
+      const fr = fig.getBoundingClientRect();
+      let x = e.clientX - fr.left + 12, y = e.clientY - fr.top - 30;
+      if (x + tip.offsetWidth > fr.width) x = e.clientX - fr.left - tip.offsetWidth - 12;
+      tip.style.left = x + "px"; tip.style.top = y + "px";
+      if (tip.parentElement !== fig) fig.appendChild(tip);
+    });
+    svg.addEventListener("pointerleave", () => { tip.hidden = true; });
+  }
+
+  function frame(id, W, H, m) {
+    const host = document.getElementById(id);
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img" }, host);
+    attachTips(svg, host.closest("figure"));
+    return { svg, iw: W - m.l - m.r, ih: H - m.t - m.b, g: el("g", { transform: `translate(${m.l},${m.t})` }, svg) };
+  }
+
+  function yAxis(g, iw, ih, yMax, ticks, fmt) {
+    ticks.forEach(v => {
+      const y = ih - v / yMax * ih;
+      el("line", { x1: 0, x2: iw, y1: y, y2: y, style: "stroke:var(--grid);stroke-width:1" }, g);
+      txt(g, -8, y + 4, fmt(v), { "text-anchor": "end" });
+    });
+  }
+
+  function lineChart(id, o) {
+    const W = 640, H = 280, m = { t: 12, r: 16, b: 34, l: 44 };
+    const { g, iw, ih } = frame(id, W, H, m);
+    const n = o.xs.length, x = i => i / (n - 1) * iw, y = v => ih - v / o.yMax * ih;
+    yAxis(g, iw, ih, o.yMax, o.yTicks, o.yFmt);
+    o.xs.forEach((lab, i) => { if (i % o.xEvery === 0 || i === n - 1) txt(g, x(i), ih + 18, lab, { "text-anchor": "middle" }); });
+    txt(g, iw, ih + 32, o.xTitle, { "text-anchor": "end" });
+    if (o.ref) {
+      el("line", { x1: 0, x2: iw, y1: y(o.ref.v), y2: y(o.ref.v), style: "stroke:var(--ink2);stroke-width:1.5;stroke-dasharray:5 4" }, g);
+      txt(g, 4, y(o.ref.v) - 6, o.ref.label);
+    }
+    o.series.forEach(s => {
+      el("path", { d: s.values.map((v, i) => `${i ? "L" : "M"}${x(i)},${y(v)}`).join(""), style: `fill:none;stroke:${s.color};stroke-width:2;stroke-linejoin:round` }, g);
+      s.values.forEach((v, i) => {
+        const filled = s.mark && s.mark(i);
+        el("circle", { cx: x(i), cy: y(v), r: 4, style: `fill:${filled ? s.color : "var(--paper)"};stroke:${s.color};stroke-width:2` }, g);
+        el("circle", { cx: x(i), cy: y(v), r: 11, style: "fill:transparent", "data-tip": `${o.xs[i]} · ${s.name}: ${o.tipFmt(v, i, s)}` }, g);
+      });
+    });
+    if (o.labels) o.labels.forEach(l => txt(g, x(l.i), y(l.v) - 10, l.text, { "text-anchor": "middle", style: "fill:var(--ink);font-size:11px;font-family:var(--f-mono)" }));
+  }
+
+  function barChart(id, o) {
+    const W = o.W || 640, H = o.H || 260, m = { t: 18, r: 12, b: 34, l: o.ml || 44 };
+    const { g, iw, ih } = frame(id, W, H, m);
+    const groups = o.cats.length, k = o.series.length, gw = iw / groups;
+    const bw = Math.min(46, (gw * 0.7) / k), gap = 2;
+    yAxis(g, iw, ih, o.yMax, o.yTicks, o.yFmt);
+    o.cats.forEach((c, gi) => {
+      const x0 = gi * gw + (gw - (bw * k + gap * (k - 1))) / 2;
+      txt(g, gi * gw + gw / 2, ih + 18, c, { "text-anchor": "middle" });
+      o.series.forEach((s, si) => {
+        const v = s.values[gi], h = Math.max(0, v / o.yMax * ih), bx = x0 + si * (bw + gap), by = ih - h;
+        const r = Math.min(4, bw / 2, h);
+        const d = `M${bx},${ih}V${by + r}Q${bx},${by} ${bx + r},${by}H${bx + bw - r}Q${bx + bw},${by} ${bx + bw},${by + r}V${ih}Z`;
+        el("path", { d, style: `fill:${s.color}`, "data-tip": `${c} · ${s.name}: ${o.tipFmt(v)}` }, g);
+        if (o.valueLabels && o.valueLabels(gi, si)) txt(g, bx + bw / 2, by - 5, o.valueFmt(v), { "text-anchor": "middle", style: "fill:var(--ink);font-size:10.5px;font-family:var(--f-mono)" });
+      });
+    });
+    el("line", { x1: 0, x2: iw, y1: ih, y2: ih, style: "stroke:var(--ink2);stroke-width:1" }, g);
+  }
+
+  function table(id, head, rows) {
+    const t = document.createElement("table");
+    t.innerHTML = `<thead><tr>${head.map((h, i) => `<th class="${i ? "num" : ""}">${h}</th>`).join("")}</tr></thead>` +
+      `<tbody>${rows.map(r => `<tr>${r.map((c, i) => `<td class="${i ? "num" : ""}">${c}</td>`).join("")}</tr>`).join("")}</tbody>`;
+    document.getElementById(id).appendChild(t);
+  }
+
+  const pct = v => Math.round(v * 100) + "%";
+  const W15 = Array.from({ length: 15 }, (_, i) => "w" + i);
+  const P = W15.map((_, t) => Math.min(1, Math.max(0, (t - 3) / 8)));
+  const A = [1, 2, 4, 2, 5, 7, 7, 8, 10, 9, 11, 12, 11, 11, 11], B = [0, 1, 3, 1, 4, 6, 6, 7, 9, 8, 10, 11, 10, 10, 10];
+
+  lineChart("c-drift", {
+    xs: W15, xEvery: 1, xTitle: "윈도우 (200건)", yMax: 1, yTicks: [0, .25, .5, .75, 1], yFmt: pct,
+    ref: { v: .5, label: "경보 기준 50%" },
+    series: [
+      { name: "14열 drift share", color: "var(--s1)", values: A.map(v => v / 14), mark: i => A[i] / 14 >= .5 },
+      { name: "13열 drift share", color: "var(--s2)", values: B.map(v => v / 13), mark: i => B[i] / 13 >= .5 },
+      { name: "신규 채널 비중", color: "var(--s3)", values: P }
+    ],
+    tipFmt: (v, i, s) => s.name.startsWith("14") ? `${A[i]}/14 = ${pct(v)}` : s.name.startsWith("13") ? `${B[i]}/13 = ${pct(v)}` : pct(v),
+    labels: [{ i: 5, v: 7 / 14, text: "w5 경보" }, { i: 7, v: 7 / 13 + .06, text: "w7" }]
+  });
+  table("t-drift", ["윈도우", "신규 비중", "14열", "13열(nc 제외)"], W15.map((w, i) => [w, pct(P[i]), `${A[i]}/14${A[i] / 14 >= .5 ? " 경보" : ""}`, `${B[i]}/13${B[i] / 13 >= .5 ? " 경보" : ""}`]));
+
+  barChart("c-marital", {
+    cats: ["기혼", "미혼", "이혼", "별거"], yMax: 1, yTicks: [0, .25, .5, .75, 1], yFmt: pct, tipFmt: pct,
+    series: [{ name: "평소 고객", color: "var(--s1)", values: [.45, .34, .14, .04] }, { name: "20대 단시간", color: "var(--s2)", values: [.06, .90, .02, .01] }],
+    valueLabels: gi => gi < 2, valueFmt: pct, H: 230
+  });
+
+  const pred = [.175, .215, .25, .18, .205, .15, .185, .135, .04, .055, .04, .01, .005, .01, 0];
+  const act = [.255, .25, .255, .21, .225, .16, .21, .15, .065, .06, .04, .005, .01, .015, .01];
+  const acc = [.84, .855, .835, .86, .87, .93, .815, .925, .945, .965, .97, .985, .985, .985, .99];
+  lineChart("c-pred", {
+    xs: W15, xEvery: 1, xTitle: "윈도우 (200건)", yMax: .3, yTicks: [0, .1, .2, .3], yFmt: pct,
+    series: [{ name: "예측 1 비율", color: "var(--s1)", values: pred }, { name: "실제 >50K", color: "var(--s2)", values: act }],
+    tipFmt: (v, i) => `${(v * 100).toFixed(1)}% (정확도 ${acc[i].toFixed(2)})`,
+    labels: [{ i: 14, v: .01, text: "0% vs 1%" }]
+  });
+  table("t-pred", ["윈도우", "예측 1", "실제 >50K", "정확도"], W15.map((w, i) => [w, (pred[i] * 100).toFixed(1) + "%", (act[i] * 100).toFixed(1) + "%", acc[i].toFixed(2)]));
+
+  const TH = ["50%", "30%", "10%", "p* 1.3%", "전원"];
+  const won = v => v.toLocaleString("ko-KR") + "만";
+  const best = (arr) => arr.indexOf(Math.max(...arr));
+  const N = [1737, 2215, 2689, 2771, 2750], D = [293, 452, 524, 504, 335];
+  barChart("c-th-normal", { cats: TH, yMax: 3000, yTicks: [0, 1000, 2000, 3000], yFmt: v => v ? v / 1000 + "천만" : "0", tipFmt: won, W: 340, H: 230, ml: 46,
+    series: [{ name: "순이익", color: "var(--s1)", values: N }], valueLabels: gi => gi === 0 || gi === best(N), valueFmt: v => v.toLocaleString("ko-KR") });
+  barChart("c-th-drift", { cats: TH, yMax: 600, yTicks: [0, 200, 400, 600], yFmt: v => v + "만", tipFmt: won, W: 340, H: 230, ml: 46,
+    series: [{ name: "순이익", color: "var(--s1)", values: D }], valueLabels: gi => gi === 0 || gi === best(D), valueFmt: v => v.toLocaleString("ko-KR") });
+
+  const OLD = [764, 1216, 1240], NEW = [765, 1202, 1250];
+  barChart("c-q5", {
+    cats: ["50% 기준", "10% 기준", "p* 1.3%"], yMax: 1400, yTicks: [0, 350, 700, 1050, 1400], yFmt: v => v.toLocaleString("ko-KR"), tipFmt: won,
+    series: [{ name: "구모델", color: "var(--s1)", values: OLD }, { name: "신모델", color: "var(--s2)", values: NEW }],
+    valueLabels: () => true, valueFmt: v => v.toLocaleString("ko-KR"), H: 250
+  });
+  table("t-q5", ["판정 기준", "구모델 (만 원)", "신모델 (만 원)"], ["50%", "10%", "p* 1.3%"].map((c, i) => [c, OLD[i].toLocaleString("ko-KR"), NEW[i].toLocaleString("ko-KR")]));
+})();
+</script>
