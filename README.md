@@ -1,5 +1,11 @@
 # mlops-drift-drill
 
+> **TL;DR (English)**: I injected gradual drift (customers from a new channel) into an income-prediction model (UCI Adult) and built serving, drift monitoring, judgment and retraining end to end with BentoML, Evidently, Kubeflow Pipelines and MLflow.
+>
+> - A drift alert means the inputs changed, not that the model is wrong: accuracy stayed at 0.99 in the window where positive predictions dropped to 0%.
+> - Retraining after the alert moved AUC only from 0.950 to 0.952, while recalibrating the decision threshold (50% to 10%) raised net profit from KRW 7.64M to 12.16M.
+> - So the pipeline adds a judgment step after each alert (insufficient > degraded > recalibrate > ok) before anything is retrained.
+
 소득 예측 모델(UCI Adult, 연소득 50K 초과 여부)에 **신규 채널 고객이 서서히 늘어나는 드리프트**를 흘려 넣고, 서빙 → 드리프트 감시 → 판단 → 재학습/판정 기준 재계산까지 직접 만들어 본 실습 코드입니다.
 
 글로 정리한 시리즈: [MLOps 실습 시리즈](https://chayujin-kr.github.io/posts/mlops-drift-00-intro/)
